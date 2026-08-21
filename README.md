@@ -4,6 +4,8 @@ macOS 菜单栏小工具：把文件扩展名「锁定」到你指定的默认�
 
 ⬇️ **下载地址**：<https://github.com/ygnstudio/Duty/releases>（`Duty.dmg`，挂载后拖入 `/Applications`）
 
+🍺 **Homebrew**：`brew install --cask ygnstudio/ygn/duty`（见 [homebrew-ygn](https://github.com/ygnstudio/homebrew-ygn)）
+
 ## 功能特性
 
 - **锁定默认应用**：为任意扩展名指定默认打开应用（如 `.md` → Obsidian、`.pdf` → 预览、`.json` → VS Code），只保护你选的类型，不管全系统。
