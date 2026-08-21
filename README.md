@@ -1,119 +1,105 @@
 # Duty
 
-A macOS menu bar utility that lets you **lock file extensions to specific applications** and automatically restores them when other apps try to take over.
+macOS 菜单栏小工具：把文件扩展名「锁定」到你指定的默认应用，其他应用（或系统更新）偷偷改掉关联时自动恢复。选择要保护的扩展名 → 指定默认应用 → 打开锁定 → 被篡改自动还原并记录历史。
 
-> **Example**: You want `.md` files to always open with Obsidian, `.pdf` with Preview, and `.json` with VS Code. Duty monitors these associations and restores them if any app changes them.
+⬇️ **下载地址**：<https://github.com/ygnstudio/Duty/releases>（`Duty.dmg`，挂载后拖入 `/Applications`）
 
-![](screenshots/04_main_with_data_real.png)
+## 功能特性
 
-## Why Duty?
+- **锁定默认应用**：为任意扩展名指定默认打开应用（如 `.md` → Obsidian、`.pdf` → 预览、`.json` → VS Code），只保护你选的类型，不管全系统。
+- **篡改即时检测**：DispatchSource 直接监听 Launch Services secure plist 文件变化，有改动即刻检查，定时轮询兜底，恢复接近实时。
+- **文件级保护**：清除单个文件的「始终打开方式」覆盖（`com.apple.LaunchServices.OpenWith` xattr），让它重新跟随全局默认。
+- **内置类型目录**：60+ 常见文件类型，中英文名称，搜索即加，不必手敲扩展名。
+- **变更历史**：每次篡改与恢复都有记录，谁在什么时间改了什么、何时被还原，一目了然。
+- **菜单栏驻留**：无 Dock 图标，支持登录自启；关掉主窗口保护不中断，从菜单退出才完全停止。
+- **双语界面**：简体中文 / English，默认跟随系统，可手动切换。
 
-macOS lets apps register themselves as default handlers for file types — often without asking. An app update might silently claim `.pdf` or `.txt`. Duty solves this by:
+## 运行要求
 
-- Letting you **choose which extensions to protect** (not all system types)
-- **Periodically checking** if your preferred defaults have changed
-- **Automatically restoring** them when they do
-- Keeping a **history** of every change and recovery
+- macOS 14（Sonoma）及以上。
+- 零第三方依赖 —— 全部走系统 Launch Services API。
 
-## Features
+### 可选增强：duti
 
-- 🛡 **Lock file extensions** to specific apps
-- 📄 **Per-file protection** — clear "Always Open With" overrides on individual files
-- 🔄 **Auto-restore** changed associations (configurable interval)
-- 📋 **Built-in catalog** of 60+ common file types with Chinese and English names
-- 📊 **Change history** — see what changed and when it was restored
-- 🚀 **Launch at login** with no Dock icon (menu bar only)
-- 🌐 **Bilingual UI** — Simplified Chinese and English
-
-## Requirements
-
-- macOS 14 (Sonoma) or later
-
-That's it. Duty works entirely through macOS Launch Services APIs — **no third-party tools required**.
-
-### Optional: duti
-
-[duti](https://github.com/moretension/duti) is an optional enhancement. Duty only uses it to recognize rare file extensions that the system itself cannot resolve. Most users never need it.
+[duti](https://github.com/moretension/duti) 仅用于识别系统自身无法解析的冷门扩展名（`UTType` 查不到 UTI 时兜底），绝大多数用户用不到：
 
 ```bash
 brew install duti
 ```
 
-If you try to add an unregistered extension without duti installed, Duty offers an in-place install guide. You can also install it anytime from **Settings → Enhancements**.
+未安装时若添加未注册扩展名，App 内会给出安装引导；也可随时在 **设置 → 增强组件** 中安装。
 
-## Quick Start
+## 目录结构
 
-### Download (Recommended)
+```
+Duty/
+├── build_app.sh                    # 一键打包脚本（swift build → Duty.app）
+├── Package.swift
+├── AppIcon.icns
+├── Sources/Duty/
+│   ├── DutyApp.swift               # App 入口（菜单栏 + 主窗口）
+│   ├── AppState.swift              # 全局状态（Combine 转发子服务变化）
+│   ├── Models/                     # 数据模型（关联 / 历史 / 受管文件）
+│   ├── Services/
+│   │   ├── AssociationService.swift     # UTI 解析 + 默认应用读写
+│   │   ├── ProtectionService.swift      # plist 监听 + 篡改检测 + 自动恢复
+│   │   ├── ExtensionCatalog.swift       # 内置文件类型目录
+│   │   ├── CommandRunner.swift          # 安全的子进程执行
+│   │   ├── DutiDetector.swift           # duti 可选组件检测
+│   │   └── PersistenceController.swift  # 本地 JSON 持久化
+│   ├── Views/                      # SwiftUI 视图（列表 / 历史 / 设置 / 引导页）
+│   ├── Utilities/
+│   └── Resources/                  # 内置 JSON 目录 + 中英 Localizable.strings
+└── .github/workflows/
+    └── build.yml                   # tag 触发：构建 → 打包 DMG → 发布 Release
+```
 
-Grab the latest `Duty.dmg` from [GitHub Releases](https://github.com/ygnstudio/Duty/releases), mount it, and drag `Duty.app` to `/Applications`.
+## 工作原理
 
-### Build from Source
+「锁定」是**检测-恢复**式的，不是系统级阻止 —— Duty 监听 Launch Services 配置变化，发现关联被抢走就立刻改回来：
+
+```mermaid
+flowchart LR
+    A[DispatchSource 监听<br>LS secure plist 变化] --> C[performCheck<br>防重入检查]
+    B[定时轮询兜底] --> C
+    C --> D{默认应用<br>被篡改?}
+    D -->|是| E[NSWorkspace<br>setDefaultApplication 恢复]
+    E -->|失败回退| F[LSSetDefaultRole<br>HandlerForContentType]
+    E --> G[记录变更历史]
+    F --> G
+    D -->|否| H[保持现状]
+```
+
+- **读取**：直接解析 `~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist` 的 LSHandlers（绕开 launchservicesd 滞后的分层缓存），`LSCopy` API 仅作回退。
+- **写入**：优先 `NSWorkspace.setDefaultApplication(at:toOpen:)`（触发系统确认框，走正规系统路径），失败回退到低层 LS API。
+- **duti 的角色**：只在 `UTType` 解析失败时用于冷门扩展名的 UTI 兜底，不参与读写。
+
+## 使用方式
+
+1. 点击菜单栏的**盾牌图标**打开主窗口。
+2. **添加文件类型**，搜索要管理的扩展名。
+3. 为每个扩展名选择默认应用。
+4. 打开**锁定**开关，启用自动保护。
+5. 关闭窗口 App 继续后台运行，保护不中断。
+
+| 操作 | 行为 |
+|------|------|
+| 左键菜单栏图标 | 打开 / 聚焦主窗口 |
+| 右键菜单栏图标 | 打开或退出 |
+| 关闭主窗口 | 继续后台运行（保护生效） |
+| 菜单退出 | 完全退出（保护停止） |
+
+## 从源码构建
 
 ```bash
 git clone https://github.com/ygnstudio/Duty.git
 cd Duty
-./build_app.sh
+./build_app.sh   # 生成 Duty.app
 open Duty.app
 ```
 
-Or open the project in Xcode and press `⌘R`.
-
-### Usage
-
-1. Click the **shield icon** in the menu bar to open Duty
-2. Click **Add File Type** to search for extensions you want to manage
-3. Select a default app for each extension
-4. Toggle **Lock** to enable automatic protection
-5. The app runs in the background — close the window, protection continues
-
-| Action | Behavior |
-|--------|----------|
-| Left-click menu bar icon | Open / focus main window |
-| Right-click menu bar icon | Open or Quit |
-| Close main window | App keeps running (protection active) |
-| Quit from menu | App fully exits (protection stops) |
-
-## Project Structure
-
-```
-Sources/Duty/
-├── DutyApp.swift                # App entry point
-├── AppState.swift               # Global state management
-├── Models/                      # Data models
-├── Services/
-│   ├── AssociationService.swift # UTI resolution + default app read/write
-│   ├── ProtectionService.swift  # File-monitoring + auto-restore
-│   ├── ExtensionCatalog.swift   # Built-in file type database
-│   ├── CommandRunner.swift      # Safe process execution
-│   ├── DutiDetector.swift       # Optional duti component detection
-│   └── PersistenceController.swift # Local JSON storage
-├── Views/                       # SwiftUI views
-├── Utilities/                   # Helpers
-└── Resources/                   # JSON catalog + localizations
-```
-
-## How It Works
-
-Duty reads default app associations directly from the Launch Services secure plist (bypassing the daemon's stale cache) and writes them via `NSWorkspace.setDefaultApplication(at:toOpen:)`, falling back to the low-level `LSSetDefaultRoleHandlerForContentType` API. The optional duti component is only used to resolve UTIs for rare extensions unknown to `UTType`.
-
-```
-File extension → UTI → Default App (read via LS secure plist / Launch Services)
-                     → Set App (write via NSWorkspace, fallback LS API)
-```
-
-The "lock" is **detection-based**, not a system-level block. Duty watches the Launch Services plist for changes and restores locked associations as soon as another app takes them over (with a timer-based fallback).
-
-## Building
-
-```bash
-# Command line
-swift build --disable-sandbox
-swift run --disable-sandbox
-
-# Or use Xcode
-open Package.swift
-```
+或用 Xcode 打开 `Package.swift` 按 `⌘R`。
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT —— 详见 [LICENSE](LICENSE)。
