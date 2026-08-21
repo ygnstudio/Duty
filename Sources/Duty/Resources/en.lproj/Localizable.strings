@@ -1,0 +1,99 @@
+/* English Localization */
+
+/* General */
+"app_name" = "Duty";
+"open_dutiui" = "Open Duty";
+"quit_dutiui" = "Quit Duty";
+
+/* Main Window */
+"file_type" = "File Type";
+"default_app" = "Default App";
+"lock" = "Lock";
+"status" = "Status";
+
+/* Actions */
+"add_file_type" = "Add File Type";
+"edit" = "Edit";
+"delete" = "Delete";
+"save" = "Save";
+"cancel" = "Cancel";
+"retry" = "Retry";
+
+/* Add Sheet */
+"search_placeholder" = "Search extensions or file types";
+"custom_extension" = "Custom Extension";
+"enter_extension" = "Enter extension (e.g. md)";
+"add_custom" = "Add Custom";
+"no_results" = "No matching file types found";
+"cannot_recognize_title" = "Cannot Recognize Extension";
+"cannot_recognize_message" = "Cannot recognize the file type for \".%@\".\n\nPlease make sure this extension is registered by an application on your system.";
+
+/* Empty State */
+"empty_title" = "No File Types Managed Yet";
+"empty_description" = "Add a file extension you want to manage or lock the default app for.";
+"add_first" = "Add File Type";
+
+/* Lock / Unlock */
+"locked" = "Locked";
+"unlocked" = "Unprotected";
+"lock_association" = "Lock This Association";
+
+/* Protection */
+"pause_protection" = "Pause Protection";
+"resume_protection" = "Resume Protection";
+"protection_paused" = "Protection Paused";
+"protection_active" = "Protection Active";
+
+/* History */
+"recent_changes" = "Recent Changes";
+"no_history" = "No change records";
+"history_detail" = "Record Detail";
+"time" = "Time";
+"detected_app" = "Detected App";
+"target_app" = "Target App";
+"result" = "Result";
+"duration" = "Duration";
+"seconds" = "seconds";
+"max_records" = "Maximum %d records retained";
+
+/* Settings */
+"settings" = "Settings";
+"general" = "General";
+"launch_at_login" = "Launch at Login";
+"check_interval" = "Check Interval";
+"show_notifications" = "Show Restore Notifications";
+"interval_5s" = "5 seconds";
+"interval_10s" = "10 seconds";
+"interval_30s" = "30 seconds";
+"interval_60s" = "60 seconds";
+
+/* Notifications */
+"notif_restored_title" = "Restored Default App for .%@";
+"notif_restored_body" = "Default app restored to \"%@\".";
+"notif_failed_title" = "Failed to Restore Default App for .%@";
+"notif_failed_body" = "Target app \"%@\" may have been deleted.";
+
+/* Duti */
+"duti_not_installed" = "duti Not Installed (Optional)";
+"duti_install_guide" = "Duty works fully without duti. Installing it only helps recognize rare file types.";
+"duti_install_command" = "Run this in Terminal:";
+"copy_command" = "Copy Install Command";
+"recheck" = "Check Again";
+"duti_detected" = "duti Detected";
+
+/* Error States */
+"app_missing" = "Target App Missing";
+"app_missing_desc" = "\"%@\" may have been deleted or moved.";
+"select_new_app" = "Select New App";
+"write_failed" = "Write Failed";
+"write_failed_desc" = "Unable to change default app for .%@.";
+
+/* Delete */
+"delete_association" = "Remove Managed Item";
+"delete_confirm" = "Remove .%@ from managed items?\n\nThe current default app will not be changed.";
+
+/* Association List Columns */
+"col_extension" = "File Type";
+"col_app" = "Default App";
+"col_lock" = "Lock";
+"col_status" = "Status";

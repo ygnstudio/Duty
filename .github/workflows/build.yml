@@ -22,7 +22,7 @@ jobs:
       - name: Create app bundle
         run: |
           BIN_DIR=$(swift build --show-bin-path -c release)
-          APP_NAME="DutiUI"
+          APP_NAME="Duty"
           APP_DIR="${APP_NAME}.app"
 
           echo "Binary directory: ${BIN_DIR}"
@@ -65,18 +65,18 @@ jobs:
           echo -n 'APPL????' > "${APP_DIR}/Contents/PkgInfo"
 
           # Info.plist — 不设 LSUIElement，由代码 NSApp.setActivationPolicy 控制
-          cat > "${APP_DIR}/Contents/Info.plist" << 'PLIST'
+          cat > "${APP_DIR}/Contents/Info.plist" <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-              <key>CFBundleExecutable</key><string>DutiUI</string>
-              <key>CFBundleIdentifier</key><string>com.ygnstudio.DutiUI</string>
-              <key>CFBundleName</key><string>DutiUI</string>
-              <key>CFBundleDisplayName</key><string>DutiUI</string>
+              <key>CFBundleExecutable</key><string>Duty</string>
+              <key>CFBundleIdentifier</key><string>com.ygnstudio.Duty</string>
+              <key>CFBundleName</key><string>Duty</string>
+              <key>CFBundleDisplayName</key><string>Duty</string>
               <key>CFBundleIconFile</key><string>AppIcon</string>
               <key>CFBundlePackageType</key><string>APPL</string>
-              <key>CFBundleShortVersionString</key><string>1.0</string>
+              <key>CFBundleShortVersionString</key><string>1.0.0</string>
               <key>CFBundleVersion</key><string>1</string>
               <key>LSMinimumSystemVersion</key><string>14.0</string>
               <key>NSHighResolutionCapable</key><true/>
@@ -84,15 +84,21 @@ jobs:
           </plist>
           PLIST
 
-          # Ad-hoc code sign
+          # 版本号取自 tag（v1.0.0 → 1.0.0），手动触发时回退 0.0.0
+          VERSION="${GITHUB_REF_NAME#v}"
+          [ "${GITHUB_EVENT_NAME}" != "push" ] && VERSION="0.0.0"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION}" "${APP_DIR}/Contents/Info.plist"
+          echo "✅ Version set to ${VERSION}"
+
+          # Ad-hoc code sign（必须在 Info.plist 修改之后，否则签名失效）
           codesign --force --deep --sign - "${APP_DIR}"
 
           echo "✅ App bundle created: ${APP_DIR}"
 
       - name: Package as DMG
         run: |
-          APP_DIR="DutiUI.app"
-          DMG_NAME="DutiUI.dmg"
+          APP_DIR="Duty.app"
+          DMG_NAME="Duty.dmg"
 
           # Create a temporary directory for DMG contents
           mkdir -p dmg_contents
@@ -100,7 +106,7 @@ jobs:
           ln -s /Applications dmg_contents/Applications
 
           # Create DMG
-          hdiutil create -volname "DutiUI" \
+          hdiutil create -volname "Duty" \
             -srcfolder dmg_contents \
             -ov -format UDZO \
             "${DMG_NAME}"
@@ -111,26 +117,26 @@ jobs:
       - name: Upload Artifact (DMG)
         uses: actions/upload-artifact@v4
         with:
-          name: DutiUI
-          path: DutiUI.dmg
+          name: Duty
+          path: Duty.dmg
           retention-days: 30
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: DutiUI.dmg
+          files: Duty.dmg
           body: |
-            ## DutiUI ${{ github.ref_name }}
+            ## Duty ${{ github.ref_name }}
 
             A macOS menu bar utility to lock file extensions to specific applications.
 
             ### Installation
 
-            1. Download `DutiUI.dmg`
-            2. Open the DMG and drag `DutiUI.app` to `/Applications`
-            3. Right-click `DutiUI.app` → Open (first launch)
-            4. Requires [duti](https://github.com/moretension/duti): `brew install duti`
+            1. Download `Duty.dmg`
+            2. Open the DMG and drag `Duty.app` to `/Applications`
+            3. Right-click `Duty.app` → Open (first launch)
+            4. Optional: install [duti](https://github.com/moretension/duti) (`brew install duti`) for better UTI detection of rare extensions
 
             ### Changes
 

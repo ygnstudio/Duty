@@ -1,14 +1,14 @@
-# DutiUI
+# Duty
 
 A macOS menu bar utility that lets you **lock file extensions to specific applications** and automatically restores them when other apps try to take over.
 
-> **Example**: You want `.md` files to always open with Obsidian, `.pdf` with Preview, and `.json` with VS Code. DutiUI monitors these associations and restores them if any app changes them.
+> **Example**: You want `.md` files to always open with Obsidian, `.pdf` with Preview, and `.json` with VS Code. Duty monitors these associations and restores them if any app changes them.
 
 ![](screenshots/04_main_with_data_real.png)
 
-## Why DutiUI?
+## Why Duty?
 
-macOS lets apps register themselves as default handlers for file types — often without asking. An app update might silently claim `.pdf` or `.txt`. DutiUI solves this by:
+macOS lets apps register themselves as default handlers for file types — often without asking. An app update might silently claim `.pdf` or `.txt`. Duty solves this by:
 
 - Letting you **choose which extensions to protect** (not all system types)
 - **Periodically checking** if your preferred defaults have changed
@@ -18,6 +18,7 @@ macOS lets apps register themselves as default handlers for file types — often
 ## Features
 
 - 🛡 **Lock file extensions** to specific apps
+- 📄 **Per-file protection** — clear "Always Open With" overrides on individual files
 - 🔄 **Auto-restore** changed associations (configurable interval)
 - 📋 **Built-in catalog** of 60+ common file types with Chinese and English names
 - 📊 **Change history** — see what changed and when it was restored
@@ -27,36 +28,39 @@ macOS lets apps register themselves as default handlers for file types — often
 ## Requirements
 
 - macOS 14 (Sonoma) or later
-- [duti](https://github.com/moretension/duti) — a lightweight command-line tool to manage default apps on macOS
 
-### Installing duti
+That's it. Duty works entirely through macOS Launch Services APIs — **no third-party tools required**.
+
+### Optional: duti
+
+[duti](https://github.com/moretension/duti) is an optional enhancement. Duty only uses it to recognize rare file extensions that the system itself cannot resolve. Most users never need it.
 
 ```bash
 brew install duti
 ```
 
-DutiUI detects missing dependencies on launch and provides step-by-step installation instructions.
+If you try to add an unregistered extension without duti installed, Duty offers an in-place install guide. You can also install it anytime from **Settings → Enhancements**.
 
 ## Quick Start
 
 ### Download (Recommended)
 
-Grab the latest `DutiUI.dmg` from [GitHub Releases](https://github.com/ygnstudio/DutiUI/releases), mount it, and drag `DutiUI.app` to `/Applications`.
+Grab the latest `Duty.dmg` from [GitHub Releases](https://github.com/ygnstudio/Duty/releases), mount it, and drag `Duty.app` to `/Applications`.
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/ygnstudio/DutiUI.git
-cd DutiUI
+git clone https://github.com/ygnstudio/Duty.git
+cd Duty
 ./build_app.sh
-open DutiUI.app
+open Duty.app
 ```
 
 Or open the project in Xcode and press `⌘R`.
 
 ### Usage
 
-1. Click the **shield icon** in the menu bar to open DutiUI
+1. Click the **shield icon** in the menu bar to open Duty
 2. Click **Add File Type** to search for extensions you want to manage
 3. Select a default app for each extension
 4. Toggle **Lock** to enable automatic protection
@@ -72,16 +76,16 @@ Or open the project in Xcode and press `⌘R`.
 ## Project Structure
 
 ```
-Sources/DutiUI/
-├── DutiUIApp.swift              # App entry point
+Sources/Duty/
+├── DutyApp.swift                # App entry point
 ├── AppState.swift               # Global state management
 ├── Models/                      # Data models
 ├── Services/
-│   ├── AssociationService.swift # UTI resolution + app management
-│   ├── ProtectionService.swift  # Timer-based monitoring + auto-restore
+│   ├── AssociationService.swift # UTI resolution + default app read/write
+│   ├── ProtectionService.swift  # File-monitoring + auto-restore
 │   ├── ExtensionCatalog.swift   # Built-in file type database
 │   ├── CommandRunner.swift      # Safe process execution
-│   ├── DutiDetector.swift       # Dependency detection
+│   ├── DutiDetector.swift       # Optional duti component detection
 │   └── PersistenceController.swift # Local JSON storage
 ├── Views/                       # SwiftUI views
 ├── Utilities/                   # Helpers
@@ -90,22 +94,21 @@ Sources/DutiUI/
 
 ## How It Works
 
-DutiUI uses macOS Launch Services API to **query** default app associations and the [duti](https://github.com/moretention/duti) command-line tool to **write** them (macOS doesn't expose a public write API).
+Duty reads default app associations directly from the Launch Services secure plist (bypassing the daemon's stale cache) and writes them via `NSWorkspace.setDefaultApplication(at:toOpen:)`, falling back to the low-level `LSSetDefaultRoleHandlerForContentType` API. The optional duti component is only used to resolve UTIs for rare extensions unknown to `UTType`.
 
 ```
-File extension → UTI → Default App (read via Launch Services)
-                     → Set App (write via duti)
-                     → Verify (re-read to confirm)
+File extension → UTI → Default App (read via LS secure plist / Launch Services)
+                     → Set App (write via NSWorkspace, fallback LS API)
 ```
 
-The "lock" is **detection-based**, not a system-level block. When another app changes a locked extension, DutiUI detects it on the next check cycle (default 10s) and restores it automatically.
+The "lock" is **detection-based**, not a system-level block. Duty watches the Launch Services plist for changes and restores locked associations as soon as another app takes them over (with a timer-based fallback).
 
 ## Building
 
 ```bash
 # Command line
-swift build
-swift run
+swift build --disable-sandbox
+swift run --disable-sandbox
 
 # Or use Xcode
 open Package.swift

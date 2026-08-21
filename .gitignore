@@ -27,3 +27,6 @@ xcuserdata/
 .vscode/
 .idea/
 .zcode/
+
+# WorkBuddy 工作区数据（含本机路径与个人信息，禁止提交）
+.workbuddy/

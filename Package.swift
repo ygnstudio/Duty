@@ -2,14 +2,14 @@
 import PackageDescription
 
 let package = Package(
-    name: "DutiUI",
+    name: "Duty",
     defaultLocalization: "zh-Hans",
     platforms: [
         .macOS(.v14)
     ],
     targets: [
         .executableTarget(
-            name: "DutiUI",
+            name: "Duty",
             resources: [
                 .process("Resources")
             ]

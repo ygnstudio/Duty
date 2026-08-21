@@ -3,11 +3,11 @@ set -e
 cd "$(dirname "$0")"
 
 echo "==> 1/4 Building executable..."
-swift build -c release 2>&1 | tail -2
+swift build -c release --disable-sandbox 2>&1 | tail -2
 
-BIN_DIR=$(swift build --show-bin-path -c release)
-EXEC="$BIN_DIR/DutiUI"
-BUNDLE="$BIN_DIR/DutiUI_DutiUI.bundle"
+BIN_DIR=$(swift build --show-bin-path -c release --disable-sandbox)
+EXEC="$BIN_DIR/Duty"
+BUNDLE="$BIN_DIR/Duty_Duty.bundle"
 
 if [ ! -f "$EXEC" ]; then
     echo "ERROR: Executable not found at $EXEC"
@@ -23,13 +23,13 @@ else
 fi
 
 echo "==> 3/4 Creating app bundle..."
-APP_DIR="DutiUI.app"
+APP_DIR="Duty.app"
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS"
 mkdir -p "$APP_DIR/Contents/Resources"
 
-cp "$EXEC" "$APP_DIR/Contents/MacOS/DutiUI"
-chmod +x "$APP_DIR/Contents/MacOS/DutiUI"
+cp "$EXEC" "$APP_DIR/Contents/MacOS/Duty"
+chmod +x "$APP_DIR/Contents/MacOS/Duty"
 
 if [ -d "$BUNDLE" ]; then
     cp -R "$BUNDLE" "$APP_DIR/Contents/Resources/"
@@ -49,21 +49,21 @@ cat > "$APP_DIR/Contents/Info.plist" << 'PLIST'
     <key>CFBundleDevelopmentRegion</key>
     <string>zh-Hans</string>
     <key>CFBundleDisplayName</key>
-    <string>DutiUI</string>
+    <string>Duty</string>
     <key>CFBundleExecutable</key>
-    <string>DutiUI</string>
+    <string>Duty</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
-    <string>com.ygnstudio.DutiUI</string>
+    <string>com.ygnstudio.Duty</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>DutiUI</string>
+    <string>Duty</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>1.0.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
@@ -79,7 +79,7 @@ codesign --force --deep --sign - "$APP_DIR" 2>/dev/null
 
 echo ""
 echo "============================================"
-echo " ✅ DutiUI.app ready: $(pwd)/$APP_DIR"
+echo " ✅ Duty.app ready: $(pwd)/$APP_DIR"
 echo " Size: $(du -sh "$APP_DIR" | cut -f1)"
 echo "============================================"
 echo ""
